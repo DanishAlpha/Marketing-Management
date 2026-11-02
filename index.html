@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Final Exam Planner</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#1b1f24;--mut:#667085;--bd:#dde1e7;--ac:#2f6fed;--ok:#1a7f4b;--bad:#c0392b;--hl:#e8f0ff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--card:#1d2128;--tx:#e8eaee;--mut:#9aa3b2;--bd:#323944;--ac:#6b9bff;--ok:#4cc38a;--bad:#ff7b6b;--hl:#22314f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14171c;--card:#1d2128;--tx:#e8eaee;--mut:#9aa3b2;--bd:#323944;--ac:#6b9bff;--ok:#4cc38a;--bad:#ff7b6b;--hl:#22314f;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:4px 0 12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+input,select{width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font-size:15px}
+.big{font-size:30px;font-weight:700}
+.sub{color:var(--mut);font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 4px;border-bottom:1px solid var(--bd)}
+tr.p td{background:var(--hl);font-weight:600}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+details summary{cursor:pointer;color:var(--ac);font-size:14px}
+.chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px}.chk input{width:auto}
+</style></head><body><main>
+<h1>Final Exam Planner</h1>
+
+<div class="card"><div class="grid">
+<div><label>Midterm marks</label><input id="mid" type="number" value="32"></div>
+<div><label>Midterm total marks</label><input id="midT" type="number" value="100"></div>
+<div><label>Project score (%)</label><input id="proj" type="number" value="80"></div>
+<div><label>Quizzes score (%)</label><input id="quiz" type="number" value="70"></div>
+<div><label>CP quartile</label><select id="cpq"><option value="0">Q1 (top)</option><option value="1" selected>Q2</option><option value="2">Q3</option><option value="3">Q4 (bottom)</option></select></div>
+<div><label>Final topper score (/100)</label><input id="fTop" type="number" value="60"></div>
+</div>
+<div class="chk"><input id="curve" type="checkbox" checked><label style="margin:0">Scale exams against topper (midterm topper 57, final topper above)</label></div>
+</div>
+
+<div class="card" id="res"></div>
+
+<div class="card"><b>Grade ladder</b>
+<table><thead><tr><th>Grade</th><th>Total needed</th><th>Final needed (/100)</th></tr></thead><tbody id="rows"></tbody></table></div>
+
+<details class="card"><summary>Assumptions (editable)</summary>
+<p class="sub">Cutoffs are guesses; replace them with your instructor's if known.</p>
+<div class="grid">
+<div><label>Midterm topper</label><input id="mTop" type="number" value="57"></div><div></div>
+<div><label>HP cutoff (total %)</label><input id="cHP" type="number" value="80"></div>
+<div><label>P+ cutoff (total %)</label><input id="cP1" type="number" value="73"></div>
+<div><label>P cutoff (total %)</label><input id="cP" type="number" value="65"></div>
+<div><label>P- cutoff (total %)</label><input id="cP2" type="number" value="57"></div>
+<div><label>CP Q1 → %</label><input id="q0" type="number" value="95"></div>
+<div><label>CP Q2 → %</label><input id="q1" type="number" value="85"></div>
+<div><label>CP Q3 → %</label><input id="q2" type="number" value="75"></div>
+<div><label>CP Q4 → %</label><input id="q3" type="number" value="65"></div>
+</div></details>
+
+<script>
+const $=id=>document.getElementById(id), n=id=>parseFloat($(id).value)||0;
+function calc(){
+ const curve=$('curve').checked;
+ const midPct=curve?Math.min(100,n('mid')/(n('mTop')||1)*100):n('mid')/(n('midT')||1)*100;
+ const cp=n('q'+$('cpq').value);
+ const base=cp*.3+n('quiz')*.1+midPct*.2+n('proj')*.1;
+ const top=n('fTop')||1;
+ const need=c=>{const norm=(c-base)/.3;
+  if(norm<=0)return{t:'Secured',c:'ok'};
+  if(norm>100)return{t:'Out of reach',c:'bad'};
+  const raw=curve?norm/100*top:norm;return{t:raw.toFixed(1)+' / 100'+(curve?' ('+norm.toFixed(0)+'% of topper)':''),c:'',raw}};
+ const gs=[['HP','cHP'],['P+','cP1'],['P','cP'],['P-','cP2']];
+ $('rows').innerHTML=gs.map(([g,k])=>{const r=need(n(k));return `<tr class="${g==='P'?'p':''}"><td>${g}</td><td>${n(k)}%</td><td class="${r.c}">${r.t}</td></tr>`}).join('');
+ const p=need(n('cP'));
+ $('res').innerHTML=`<div class="sub">To secure P you need in the final</div><div class="big ${p.c}">${p.t}</div>
+ <div class="sub">Points so far: ${base.toFixed(1)} of 70 (midterm counted as ${midPct.toFixed(0)}%, CP as ${cp}%). Final adds up to 30.</div>`;
+}
+document.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',calc));
+calc();
+</script></main></body></html>
